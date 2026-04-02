@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Habit Tracker</title>
+  <meta name="theme-color" content="#ffffff" />
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f5f3; color: #1a1a18; min-height: 100vh; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #1a1a18; color: #f0ede8; }
+      .card { background: #2a2a27 !important; border-color: #3a3a36 !important; }
+      .metric { background: #222220 !important; }
+      input { background: #2a2a27 !important; color: #f0ede8 !important; border-color: #3a3a36 !important; }
+      .tab-btn { color: #aaa; }
+      .tab-btn.active { background: #2a2a27 !important; color: #f0ede8 !important; border-color: #3a3a36 !important; }
+      .add-btn { border-color: #3a3a36 !important; color: #aaa !important; }
+      .week-cell-empty { background: #222220 !important; border-color: #3a3a36 !important; }
+      .secondary-text { color: #888 !important; }
+      .edit-btn { color: #888 !important; border-color: #3a3a36 !important; }
+    }
+    #app { max-width: 520px; margin: 0 auto; padding: 1.25rem; }
+    h2 { font-size: 20px; font-weight: 500; }
+    p { line-height: 1.5; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 1.25rem; }
+    .tab-btn { flex: 1; padding: 7px 0; font-size: 13px; background: transparent; border: 0.5px solid #ccc; border-radius: 8px; cursor: pointer; color: #888; }
+    .tab-btn.active { background: #ebebea; color: #1a1a18; border-color: #bbb; font-weight: 500; }
+    .card { background: #fff; border: 0.5px solid #ddd; border-radius: 12px; padding: 12px 14px; cursor: pointer; transition: border-color 0.2s; }
+    .habits-list { display: flex; flex-direction: column; gap: 8px; }
+    .habit-row { display: flex; align-items: center; gap: 12px; }
+    .check-circle { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.2s; background: #ebebea; font-size: 13px; }
+    .habit-info { flex: 1; }
+    .habit-name { font-size: 14px; font-weight: 500; }
+    .streak-text { font-size: 12px; color: #888; margin-top: 1px; }
+    .remove-btn { background: transparent; border: none; cursor: pointer; font-size: 20px; color: #aaa; padding: 0; line-height: 1; }
+    .add-btn { width: 100%; margin-top: 10px; padding: 10px; font-size: 13px; background: transparent; border: 0.5px dashed #bbb; border-radius: 12px; cursor: pointer; color: #888; }
+    .add-row { display: flex; gap: 8px; margin-top: 12px; }
+    .add-row input { flex: 1; padding: 8px 12px; font-size: 14px; border-radius: 8px; border: 0.5px solid #bbb; outline: none; }
+    .btn-green { padding: 8px 14px; font-size: 13px; border-radius: 8px; background: #1D9E75; border: none; color: #fff; cursor: pointer; font-weight: 500; }
+    .btn-cancel { padding: 8px 10px; font-size: 13px; border-radius: 8px; background: transparent; border: 0.5px solid #ccc; cursor: pointer; color: #888; }
+    .row-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .secondary-text { font-size: 13px; color: #888; }
+    .edit-btn { font-size: 12px; padding: 4px 10px; background: transparent; border: 0.5px solid #ccc; border-radius: 8px; cursor: pointer; color: #888; }
+    .week-header { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 12px; text-align: center; }
+    .week-header .day-label { font-size: 11px; color: #888; }
+    .week-header .day-num { font-size: 12px; font-weight: 500; }
+    .week-habits { display: flex; flex-direction: column; gap: 12px; }
+    .week-habit-label { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+    .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .week-cell { height: 34px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+    .week-cell-empty { background: #ebebea; border: 0.5px solid #ddd; }
+    .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .metric { background: #ebebea; border-radius: 8px; padding: 12px 14px; }
+    .metric-label { font-size: 12px; color: #888; margin-bottom: 2px; }
+    .metric-val { font-size: 22px; font-weight: 500; }
+    .stat-card { background: #fff; border: 0.5px solid #ddd; border-radius: 12px; padding: 12px 14px; margin-bottom: 0; }
+    .stat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 10px; }
+    .stat-item { text-align: center; }
+    .stat-val { font-size: 16px; font-weight: 500; }
+    .stat-label { font-size: 11px; color: #888; }
+    .progress-bar-bg { height: 4px; background: #ebebea; border-radius: 4px; }
+    .progress-bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
+    .stats-list { display: flex; flex-direction: column; gap: 10px; }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const DEFAULT_HABITS = [
+  { id: 1, name: "Go to gym", icon: "💪", color: "#3266ad" },
+  { id: 2, name: "Hit protein goal", icon: "🥩", color: "#1D9E75" },
+  { id: 3, name: "Study session", icon: "📚", color: "#7F77DD" },
+  { id: 4, name: "Drink 2L water", icon: "💧", color: "#378ADD" },
+  { id: 5, name: "Sleep 8hrs", icon: "🛌", color: "#D4537E" },
+];
+const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const ICONS = ["⭐","🎯","✅","🔑","🏆","💡","🚀"];
+const COLORS = ["#3266ad","#1D9E75","#7F77DD","#D4537E","#BA7517","#D85A30","#639922"];
+
+let habits = JSON.parse(localStorage.getItem("ht_habits") || "null") || DEFAULT_HABITS;
+let logs = JSON.parse(localStorage.getItem("ht_logs") || "{}");
+let tab = "today";
+let editMode = false;
+let showAdd = false;
+let newHabit = "";
+
+function save() {
+  localStorage.setItem("ht_habits", JSON.stringify(habits));
+  localStorage.setItem("ht_logs", JSON.stringify(logs));
+}
+
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+function getLast7() {
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    days.push({ key, label: i === 0 ? "Now" : DAYS[d.getDay()], date: d.getDate() });
+  }
+  return days;
+}
+
+function calcStreak(hid) {
+  let s = 0, d = new Date();
+  while (true) {
+    const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    if (logs[k]?.[hid]) { s++; d.setDate(d.getDate()-1); } else break;
+  }
+  return s;
+}
+
+function calcTotal(hid) {
+  return Object.values(logs).filter(d => d[hid]).length;
+}
+
+function toggle(hid, dateKey) {
+  if (!logs[dateKey]) logs[dateKey] = {};
+  logs[dateKey][hid] = !logs[dateKey][hid];
+  save(); render();
+}
+
+function addHabit() {
+  if (!newHabit.trim()) return;
+  habits.push({ id: Date.now(), name: newHabit.trim(), icon: ICONS[habits.length % ICONS.length], color: COLORS[habits.length % COLORS.length] });
+  newHabit = ""; showAdd = false;
+  save(); render();
+}
+
+function removeHabit(id) {
+  habits = habits.filter(h => h.id !== id);
+  save(); render();
+}
+
+function checkSVG(color) {
+  return `<svg width="14" height="14" viewBox="0 0 14 14"><polyline points="2,7 6,11 12,3" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+function renderRing(pct) {
+  const r = 38, circ = 2 * Math.PI * r;
+  const offset = circ - (circ * pct / 100);
+  return `<svg width="64" height="64" viewBox="0 0 88 88">
+    <circle cx="44" cy="44" r="${r}" fill="none" stroke="#ddd" stroke-width="7"/>
+    <circle cx="44" cy="44" r="${r}" fill="none" stroke="#1D9E75" stroke-width="7"
+      stroke-dasharray="${circ}" stroke-dashoffset="${offset}"
+      stroke-linecap="round" transform="rotate(-90 44 44)" style="transition:stroke-dashoffset 0.5s"/>
+    <text x="44" y="44" text-anchor="middle" dominant-baseline="central"
+      style="font-size:18px;font-weight:500;fill:currentColor;font-family:sans-serif">${pct}%</text>
+  </svg>`;
+}
+
+function render() {
+  const today = todayKey();
+  const todayLogs = logs[today] || {};
+  const completed = habits.filter(h => todayLogs[h.id]).length;
+  const pct = habits.length ? Math.round((completed / habits.length) * 100) : 0;
+  const days = getLast7();
+
+  let content = "";
+
+  // Header
+  const dateStr = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  content += `<div class="header">
+    <div><h2>Habit tracker</h2><p class="secondary-text">${dateStr}</p></div>
+    ${renderRing(pct)}
+  </div>`;
+
+  // Tabs
+  content += `<div class="tabs">
+    ${["today","week","stats"].map(t =>
+      `<button class="tab-btn ${tab===t?"active":""}" onclick="tab='${t}';render()">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`
+    ).join("")}
+  </div>`;
+
+  if (tab === "today") {
+    content += `<div class="row-meta">
+      <span class="secondary-text">${completed}/${habits.length} completed</span>
+      <button class="edit-btn" onclick="editMode=!editMode;render()">${editMode?"Done":"Edit"}</button>
+    </div>
+    <div class="habits-list">`;
+    habits.forEach(h => {
+      const done = !!todayLogs[h.id];
+      const streak = calcStreak(h.id);
+      content += `<div class="card" style="border-color:${done?h.color:"#ddd"}" onclick="${editMode?"":`toggle(${h.id},'${today}')`}">
+        <div class="habit-row">
+          <div class="check-circle" style="background:${done?h.color:"#ebebea"}">
+            ${done ? checkSVG("#fff") : `<span style="font-size:13px">${h.icon}</span>`}
+          </div>
+          <div class="habit-info">
+            <div class="habit-name">${h.name}</div>
+            ${streak > 0 ? `<div class="streak-text">🔥 ${streak} day streak</div>` : ""}
+          </div>
+          ${editMode ? `<button class="remove-btn" onclick="event.stopPropagation();removeHabit(${h.id})">×</button>` : ""}
+        </div>
+      </div>`;
+    });
+    content += `</div>`;
+
+    if (showAdd) {
+      content += `<div class="add-row">
+        <input id="newHabitInput" type="text" placeholder="New habit name..." value="${newHabit}" oninput="newHabit=this.value" onkeydown="if(event.key==='Enter')addHabit()" autofocus />
+        <button class="btn-green" onclick="addHabit()">Add</button>
+        <button class="btn-cancel" onclick="showAdd=false;render()">Cancel</button>
+      </div>`;
+    } else {
+      content += `<button class="add-btn" onclick="showAdd=true;render()">+ Add habit</button>`;
+    }
+  }
+
+  if (tab === "week") {
+    content += `<div class="week-header">${days.map(d =>
+      `<div><div class="day-label">${d.label}</div><div class="day-num">${d.date}</div></div>`
+    ).join("")}</div><div class="week-habits">`;
+    habits.forEach(h => {
+      const streak = calcStreak(h.id);
+      content += `<div>
+        <div class="week-habit-label">
+          <span style="font-size:12px">${h.icon}</span>
+          <span style="font-size:13px;font-weight:500">${h.name}</span>
+          <span style="font-size:11px;color:#888;margin-left:auto">🔥 ${streak}d</span>
+        </div>
+        <div class="week-grid">${days.map(d => {
+          const done = !!logs[d.key]?.[h.id];
+          return `<div class="week-cell ${done?"":"week-cell-empty"}" style="${done?`background:${h.color};border:0.5px solid ${h.color}`:""}" onclick="toggle(${h.id},'${d.key}')">
+            ${done ? checkSVG("#fff") : ""}
+          </div>`;
+        }).join("")}</div>
+      </div>`;
+    });
+    content += `</div>`;
+  }
+
+  if (tab === "stats") {
+    const best = Math.max(0, ...habits.map(h => calcStreak(h.id)));
+    content += `<div class="metrics-grid">
+      <div class="metric"><div class="metric-label">Today's progress</div><div class="metric-val">${pct}%</div></div>
+      <div class="metric"><div class="metric-label">Longest streak</div><div class="metric-val">🔥 ${best}d</div></div>
+    </div><div class="stats-list">`;
+    habits.forEach(h => {
+      const streak = calcStreak(h.id);
+      const total = calcTotal(h.id);
+      const rate = days.length ? Math.round((days.filter(d => logs[d.key]?.[h.id]).length / days.length) * 100) : 0;
+      content += `<div class="stat-card">
+        <div class="week-habit-label" style="margin-bottom:10px">
+          <span style="font-size:14px">${h.icon}</span>
+          <span style="font-size:14px;font-weight:500">${h.name}</span>
+        </div>
+        <div class="stat-grid">
+          <div class="stat-item"><div class="stat-val" style="color:${h.color}">${streak}d</div><div class="stat-label">Streak</div></div>
+          <div class="stat-item"><div class="stat-val" style="color:${h.color}">${rate}%</div><div class="stat-label">7-day rate</div></div>
+          <div class="stat-item"><div class="stat-val" style="color:${h.color}">${total}d</div><div class="stat-label">All time</div></div>
+        </div>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${rate}%;background:${h.color}"></div></div>
+      </div>`;
+    });
+    content += `</div>`;
+  }
+
+  document.getElementById("app").innerHTML = content;
+  if (showAdd) {
+    const inp = document.getElementById("newHabitInput");
+    if (inp) inp.focus();
+  }
+}
+
+render();
+</script>
+</body>
+</html>
